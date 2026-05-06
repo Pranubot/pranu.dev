@@ -1,10 +1,10 @@
 // Config
 
 const NAV_LINKS = [
-  { label: 'Home',     href: 'index.html'    },
-  { label: 'Projects', href: 'projects.html' },
-  { label: 'Blog',     href: 'blog.html'     },
-  { label: 'Contact',  href: 'contact.html'  },
+  { label: 'Home',     href: './'         },
+  { label: 'Projects', href: 'projects/'  },
+  { label: 'Blog',     href: 'blog/'      },
+  { label: 'Contact',  href: 'contact/'   },
 ];
 
 // 88×31 footer badges
@@ -19,13 +19,12 @@ const BADGES = [
 //  Helpers
 
 function getCurrentPage() {
-  const path = window.location.pathname;
-  const file = path.split('/').pop() || 'index.html';
-  if (file === '' || file === 'index.html') return 'Home';
-  if (file === 'projects.html') return 'Projects';
-  if (file === 'blog.html')     return 'Blog';
-  if (file === 'contact.html')  return 'Contact';
-  return '';
+  const parts = window.location.pathname.split('/').filter(s => s && s !== 'index.html');
+  const last = parts[parts.length - 1] || '';
+  if (last === 'projects') return 'Projects';
+  if (last === 'blog')     return 'Blog';
+  if (last === 'contact')  return 'Contact';
+  return 'Home';
 }
 
 // Render
@@ -33,16 +32,18 @@ function getCurrentPage() {
 function renderHeader() {
   const current = getCurrentPage();
 
+  const isFile = location.protocol === 'file:';
   const linksHtml = NAV_LINKS.map((link, i) => {
+    const href = isFile && link.href.endsWith('/') ? link.href + 'index.html' : link.href;
     const isActive = link.label === current;
     const sep = i < NAV_LINKS.length - 1 ? '<span class="nav-sep">|</span>' : '';
-    return `<a href="${link.href}"${isActive ? ' class="active"' : ''}>${link.label}</a>${sep}`;
+    return `<a href="${href}"${isActive ? ' class="active"' : ''}>${link.label}</a>${sep}`;
   }).join('');
 
   return `
 <nav class="site-nav">
   <div class="wrapper nav-inner">
-    <a href="index.html" class="nav-brand">
+    <a href="${isFile ? 'index.html' : './'}" class="nav-brand">
       <span class="nav-logo-wrap">
         <img  class="nav-logo nav-logo-still" src="images/logo.jpg" alt="pranav yadav">
         <video class="nav-logo nav-logo-hover" src="images/logo-hover.mov" muted playsinline preload="auto" loop></video>
