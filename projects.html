@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>projects — pranav yadav</title>
+  <meta name="description" content="pranav yadav's projects">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div id="site-header"></div>
+
+  <main>
+
+    <div class="page-banner-wrap">
+      <img src="images/Projects/project-banner.jpg" class="page-banner-img" alt="">
+      <div class="page-banner-title" aria-hidden="true">projects</div>
+    </div>
+
+    <div class="wrapper">
+
+      <!--
+        How to add project (for future reference):
+        Copy one <article class="project-card"> block and fill it in
+        - href="#" -> link to github repo
+        - Remove <div class="project-links"> if no links yet
+        - Tags: add <span class="tag">...</span>
+      -->
+
+      <!--PAPERS-->
+      <div class="project-section">
+        <p class="project-section-label">papers</p>
+        <div class="project-list">
+
+          <article class="project-card">
+            <div class="project-card-header">
+              <h2 class="project-card-title">HG-RAG: Hierarchy-Guided RAG for Structured Knowledge Graphs</h2>
+              <span class="project-card-year">April 2026</span>
+            </div>
+            <div class="project-card-body">
+              <div class="project-card-content">
+                <p class="project-card-desc">
+                  An independent NLP research paper where I designed and implemented a RAG framework that performs
+                  graph-traversal over hierarchical knowledge graphs to deliver structured context to LLMs.
+                </p>
+                <ul class="exp-bullets">
+                  <li>Evaluated across three world scales (18-800 nodes) and four query types against a baseline using Mistral 7B</li>
+                  <li>HG-RAG achieved 1.86 factual accuracy vs. 0.02 baseline on large-scale graphs and demonstrated
+                    exceptional scaling on multi-hop reasoning (4.10 vs. 1.66 LLM judge score at large scale)</li>
+                  <li>Published on ArXiv — many thanks to Professor Yiwei Wang for endorsing me</li>
+                </ul>
+                <div class="project-tags">
+                  <span class="tag">Python</span>
+                  <span class="tag">RAG</span>
+                  <span class="tag">NetworkX</span>
+                </div>
+                <div class="project-links">
+                  <a href="#">[arxiv]</a>
+                  <a href="https://github.com/Pranubot/HG-RAG" target="_blank">[github]</a>
+                </div>
+              </div>
+              <div class="project-card-media">
+                <img
+                  src="images/Projects/HGRAG_Poster_small.png"
+                  class="project-poster-thumb"
+                  alt="HG-RAG Poster preview"
+                  title="Click to expand"
+                >
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <!--PROJECTS-->
+      <div class="project-section">
+        <p class="project-section-label">projects</p>
+        <div class="project-list">
+
+        <article class="project-card">
+          <div class="project-card-header">
+            <h2 class="project-card-title">CatTracker | Hacktually submission</h2>
+            <span class="project-card-year">Oct 2025</span>
+          </div>
+          <div class="project-card-body">
+            <div class="project-card-content">
+              <p class="project-card-desc">
+                My team and I built an AI-powered transit planning web app for UC Merced students using Google Gemini 2.5 Flash to process natural language queries and recommend CatTracks bus routes.
+              </p>
+              <ul class="exp-bullets">
+                <li>Integrated Google Maps Geocoding, Directions, and Distance Matrix APIs to calculate accurate bus paths and walking directions to bus stops</li>
+                <li>Supported 9 bus routes with real-time schedule parsing and time-based trip planning given a user-specified arrival time</li>
+              </ul>
+              <div class="project-tags">
+                <span class="tag">Next.js</span>
+                <span class="tag">React</span>
+                <span class="tag">TypeScript</span>
+                <span class="tag">Tailwind CSS</span>
+                <span class="tag">Google Gemini API</span>
+                <span class="tag">Google Maps API</span>
+                <span class="tag">Python</span>
+              </div>
+              <div class="project-links">
+                <a href="https://github.com/UCM-Transit-Assist/UCM-Trip-Assistant" target="_blank">[github]</a>
+                <a href="https://ucm-trip-assistant.vercel.app/" target="_blank">[app]</a>
+              </div>
+            </div>
+            <div class="project-card-media">
+              <img
+                src="images/Projects/cattracker.webp"
+                class="project-card-img"
+                alt="CatTracker app preview"
+              >
+            </div>
+          </div>
+
+        <article class="project-card">
+          <div class="project-card-header">
+            <h2 class="project-card-title">AI Resume Analyzer | MLC Project</h2>
+            <span class="project-card-year">June 2025</span>
+          </div>
+          <div class="project-card-body">
+            <div class="project-card-content">
+              <p class="project-card-desc">
+                Project of the Machine Learning Club at UC Merced. Analyzes a user's resume and provides specific feedback with AI; follows up with a list of jobs relevant to the user. I primarily worked on the API calls in the backend and various UI elements.
+              </p>
+              <ul class="exp-bullets">
+                <li>Calls ChatGPT API with detailed prompt and user's Resume parsed into text, receives structured feedback</li>
+                <li>Calls JSearch API and sends a JSON file of keywords to receive relevant jobs</li>
+                <li>Displayed to a user on a website made with React JSX</li>
+              </ul>
+              <div class="project-tags">
+                <span class="tag">Next.js</span>
+                <span class="tag">React</span>
+                <span class="tag">TypeScript</span>
+                <span class="tag">Tailwind CSS</span>
+                <span class="tag">Firebase</span>
+                <span class="tag">Python</span>
+                <span class="tag">REST API</span>
+              </div>
+              <div class="project-links">
+                <a href="https://github.com/amannindra/AI-Resume" target="_blank">[github]</a>
+              </div>
+            </div>
+            <div class="project-card-media">
+              <img
+                src="images/Projects/resume-analyzer.webp"
+                class="project-card-img"
+                alt="Resume Analyzer app preview"
+              >
+            </div>
+          </div>
+        </article>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Poster lightbox -->
+  <div class="lightbox" id="poster-lightbox">
+    <img src="images/Projects/HGRAG_Poster.png" alt="HG-RAG Poster (full size)">
+  </div>
+
+  <div id="site-footer"></div>
+  <script src="js/nav.js"></script>
+  <script>
+    const thumb    = document.querySelector('.project-poster-thumb');
+    const lightbox = document.getElementById('poster-lightbox');
+    if (thumb && lightbox) {
+      thumb.addEventListener('click', () => lightbox.classList.add('open'));
+      lightbox.addEventListener('click', () => lightbox.classList.remove('open'));
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') lightbox.classList.remove('open');
+      });
+    }
+  </script>
+</body>
+</html>
