@@ -814,10 +814,22 @@ main {
   border: 1px solid var(--border-2);
 }
 
+.project-card-media--stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.project-card-media--stacked .project-card-img {
+  width: 350px;
+}
+
 @media (max-width: 600px) {
   .project-card-body { flex-direction: column; }
   .project-poster-thumb { width: 100%; }
   .project-card-img { width: 100%; }
+  .project-card-media--stacked .project-card-img { width: 100%; }
 }
 
 .lightbox {
