@@ -20,10 +20,9 @@ const BADGES = [
 
 function getCurrentPage() {
   const parts = window.location.pathname.split('/').filter(s => s && s !== 'index.html');
-  const last = parts[parts.length - 1] || '';
-  if (last === 'projects') return 'Projects';
-  if (last === 'blog')     return 'Blog';
-  if (last === 'contact')  return 'Contact';
+  if (parts.includes('projects')) return 'Projects';
+  if (parts.includes('blog'))     return 'Blog';
+  if (parts.includes('contact'))  return 'Contact';
   return 'Home';
 }
 

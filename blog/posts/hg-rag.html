@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A discussion about my independent research paper, HG-RAG — pranav yadav</title>
+  <meta name="description" content="A discussion about HG-RAG: Hierarchy-Guided RAG for Structured Knowledge Graphs, my independent NLP research paper.">
+  <base href="../../">
+  <link rel="icon" type="image/jpeg" href="images/logo-no-text.jpg">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div id="site-header"></div>
+
+  <main>
+    <div class="wrapper">
+
+      <a href="blog/index.html" class="post-back">← blog</a>
+
+      <article>
+        <header class="post-article-header">
+          <h1 class="post-article-title">A discussion about my independent research paper, HG-RAG</h1>
+          <p class="post-article-meta">07-20-2026</p>
+        </header>
+
+        <div class="post-body">
+
+          <p>
+            A few months ago I published my first independent research paper on arXiv:
+            <a href="https://arxiv.org/abs/2607.14095" target="_blank" rel="noopener">HG-RAG: Hierarchy-Guided RAG for Structured Knowledge Graphs</a>.
+            I want to talk about what it is, why I built it, and what I learned from doing independent research for the first time.
+          </p>
+          <p>
+            This spring semester, I got done with my university’s Natural Language Processing class: 
+            CSE 188. It was the first time the course had been offered, so there were zero expectations on 
+            what it would be like. Despite the ambiguity coming in to the first lecture, I was not disappointed 
+            by the course; quite the opposite. 
+          </p>
+          <p>
+            The only assignment to be in the grade book was a final research project related to NLP. No rubric, 
+            no guidelines, not even a page limit. This degree of freedom was quite foreign to me, but I immediately 
+            saw the opportunity to make this class valuable to me.
+          </p>
+          <p>
+            When it comes to CS classes, I really favor projects above exams. I don’t say this because it’s 
+            low-risk or easy to cheat, but rather their value to your resume. If a course is rigorous enough, 
+            the projects you do in them are often sufficient for a place in your resume. As for this course, 
+            the project could practically be whatever I wanted to be, with the only constraint being the topic 
+            having to be NLP. 
+          </p>
+          <p>
+            A large portion of grading would be allocated to analyzing creativity and originality, so I 
+            really wanted to nail down a unique vision. I thought back to an idea my team had for 2025 
+            CalHacks. Our goal was to use node graph maps in conjunction with a RAG retrieval system built 
+            for this architecture to understand and build context in virtual game worlds. Recall those 
+            map-based grand strategy games with many factions or countries; imagine if we had an AI system 
+            that could efficiently retrieve from this map. And not only that, but also edit and build on top 
+            of the existing map. 
+          </p>
+          <figure class="post-figure">
+            <img src="images/blog/HG-RAG/ckIII.jpg" class="post-img" alt="Image of Crusader Kings III gameplay" width="600">
+            <figcaption>Crusader Kings III gameplay</figcaption>
+          </figure>
+          <p>
+          The scope for this project exceeded the manpower we could give in a 2-day period, but it became the basis for my research: Hierarchy-Guided RAG for Structured Knowledge Graphs. 
+          </p>
+          <h2>My Setup</h2>
+          <p>
+            I wanted to develop a RAG architecture optimal for operating on node graphs with an emphasis on 
+            hierarchical relationships. This style of data shows up frequently in our lives; apart from my 
+            map-based video game example where a country contains states who contains cities, we can see this
+             structure in superior-subordinate relationships and any other context where hierarchy and 
+             neighboring plays large roles.
+          </p>
+          <p>
+            Existing RAG operates on semantic similarity through vector embeddings. So relevant entities 
+            are encoded into dense vectors and compared to all others using cosine similarity. This system 
+            performs well when pulling from flat-text documents; but room for improvement is visible when 
+            looking at other data structures, like node-graphs. 
+          </p>
+          <p>
+            You may infer that we can simply translate nodes and edges into flat text relationships, and 
+            simply have that as our document which RAG pulls from. This is not a bad solution, as any RAG 
+            implementation is better than no RAG; however, you would be losing all advantages of having 
+            that specific node structure when flattening it. So my thought process was whether we could 
+            implement RAG to analyze a graph the same way humans do: starting from focusing on one node 
+            and then shifting attention to neighbors, parents, and children. 
+          </p>
+          <figure class="post-figure">
+            <img src="images/blog/HG-RAG/HG-RAG_Structure.png" class="post-img" alt="HG-RAG architecture diagram" width="400">
+            <figcaption> Simplification of hierarchy tree per-planet </figcaption>
+          </figure>
+          <p>
+            With our problem and proposed solution set, it was time to generate a proper testing ground. 
+            I decided to play into our video game world example by creating a world which contains complex
+            relationships between different countries and cities. We first start with our planets — they 
+            are at the highest tier in our hierarchy, encapsulating the countries who contain the cities. 
+            But when we get down to the country level is where things get more interesting. As seen in both
+            media and real-life, countries can often have a allied or adversarial relationship with each
+            other. This behavior is reflected in these procedurally generated worlds I’ve created; 
+            countries have information with each other that pertain to relationship, trade, and conflict.
+            Down at the city level, we would track exports/imports between them.
+          </p>
+          <p>
+            The question I spent a while tackling was “How could I properly evaluate the reliability of 
+            HG-RAG as a practical solution?” Multiple kinds of evaluation metrics would have to be developed,
+            as there are a variety of ways you want your data to be retrieved. I landed upon procedurally 
+            generating questions the same way I generated the world, but dividing them up into multiple 
+            categories, all gauging different ways of understanding the world map. 
+          </p>
+          <p>
+            The first three — local fact, heirarchical, and neighborhood — were quite simple. Local fact 
+            would be the most straightforward, essentially asking “Can you retrieve this specific entity 
+            I am telling you and tell me the relevant information about them?” Heirarchial evaluated 
+            proficiency at retrieving parent/child nodes, while neighborhood focused on lateral nodes. 
+            My last query type, multi-hop, addressed an issue I had with the complexity of my trials. I 
+            wanted to implement questions that would reward navigating the node graph format — questions that
+            would incentivize exploring the graph as it was presented. Multi-hop was an obvious candidate 
+            for this solution, as it forces you chain multiple relational steps across the graph to arrive 
+            at the correct answer. It also brings in much needed difficulty to our question pool, easily 
+            being the hardest question type.
+          </p>
+          <p>
+            The issue that arises from multi-hop questions was not generating them. This was accomplished by 
+            having a series of template questions which would be selected when applicable to the world. 
+            The problem resided in grading them. Grading LLM outputs was uncharted territory for me, so my 
+            first instinct was to grade multi-hop responses like any other: keyword checking. This worked 
+            well with the former 3 categories, since they had absolute answers. Multi-hop did not have this 
+            luxury; there are multiple ways you can word an answer and retain correctness. A simple keyword 
+            search would not suffice with this added complexity, so I employed an LLM-as-a-judge. The name 
+            is self explanatory: you have a second instance of an LLM to judge the first LLM’s response. This 
+            solution initially sounded very hacky to me at first, but apparently its the industry standard 
+            when grading LLM responses. I would use a second instance of my LLM and pass it the right context 
+            alongside the LLM response to get a score from 1-5 for all multi-hop questions. In a more robust 
+            research setting, I would have sported for an API call from one of the industry titans’ large 
+            parameter models. However, I did not want to break the bank for a college course project. 
+          </p>
+          <figure class="post-figure">
+            <img src="images/blog/HG-RAG/baseline_vs_hgrag.png" class="post-img" alt="HG-RAG vs Vector Baseline RAG" width="700">
+            <figcaption> The structure differences between HG-RAG and a Vector Baseline</figcaption>
+          </figure>
+          <p>
+            Above is a diagram from my paper which illustrates the difference between HG-RAG from a standard 
+            vector baseline RAG model. The baseline operates like any standard RAG model, vectorizing every 
+            entity and using cosine similarity to find a match. This has its perks when you operate on flat 
+            context like a pdf, but when your data takes a less linear form you start to see the struggles. 
+            Compare that with HG-RAG, which resolves the entity and traverses the map from the node the same 
+            way you would. It’s kind of what I was going for when I started this research: how do we have an 
+            LLM observe visual data the same way humans do? When given a map and a question, we have a pretty 
+            efficient process to find the answer to that question. We hone our vision on the named entities 
+            in the question and go from there, exploring neighbors when necessary. 
+          </p>
+          <h2>Results</h2>
+          <p>Now for the results. If you want the specifics on my experimentation, please read my paper, I explain things a lot better there. 
+            To summarize, I generated 3 sizes of worlds (small, medium, large) and 100 questions for each world 
+            with a 25% split for all query types. </p>
+          <div class="post-figure-row">
+            <figure class="post-figure">
+              <img src="images/blog/HG-RAG/Fig1.png" class="post-img" alt="Results figure 1">
+              <figcaption>Factual Accuracy over World Size</figcaption>
+            </figure>
+            <figure class="post-figure">
+              <img src="images/blog/HG-RAG/Fig2.png" class="post-img" alt="Results figure 2">
+              <figcaption>Multi-Hop Trends</figcaption>
+            </figure>
+          </div>
+
+          <p>
+            Performing this for multiple trials, the trend is what you 
+            expect: HG-RAG performs better as the challenges grew. When world sizes because larger, our 
+            baseline RAG buckled under the pressure of massive context to sift through, while HG-RAG’s 
+            specialized framework excelled at pinpointing the areas of interest and avoiding unnecessary context 
+            buildup. And unsurprisingly, multi-hop questions widened the gap in performance. HG-RAG stayed afloat 
+            with respectable performance while our baseline was functionally useless. 
+          </p>
+          <p>
+            However, a result which you may not expect is when observing the small world performance. 
+            We actually notice that HG-RAG does not perform better on smaller worlds compared to larger 
+            ones. This initially did not make sense to me, because I saw it as a math student being able 
+            to do calculus problems but fail at algebra 2. I expected a smaller graph would make retrieval 
+            much easier due to less noise, but that’s fails to see the big picture. A smaller graph means 
+            that HG-RAG will probably retrieve the entire graph, making the signal-to-noise ratio lopsided 
+            and fizzing out any advantage HG-RAG set out to have in the first place. And when the context 
+            is so small, there really is no need for some specialized framework with bells and whistles. 
+            A standard RAG model can flatten the entire world and experience no struggle since the challenge 
+            of traversing a large world that has been flattened is nonexistent. 
+          </p>
+          <p>
+            Overall, the tests were a success, and I was extremely pleased with the solution I came up with. 
+            For any data that involves a hierarchical structure which dictates position, relation, or role, 
+            an approach along the lines of HG-RAG can prove to be an optimal solution. I’m glad I chose a 
+            topic like this to research since it helped conveyed to me the importance of building a framework 
+            for specialized tasks. You can always scale up: get better hardware for your AI models. However, 
+            the true test lies in how you can maximize the utility through building your own system. 
+          </p>
+          <p>
+            I want to end by thanking my NLP professor Yiwei Wang for endorsing my paper on Arxiv for 
+            publishing, I really appreciated his enthusiasm for undergraduate students getting into research. 
+            He understood the importance of reading and writing papers in our field, and how overlooked it is in 
+            the majority of CS classes. This was a personal favorite class of mine, and I really hope the 
+            structure of this course is preserved for future semesters.
+          </p>
+          <p>
+            As always, you can find my paper on arxiv, where you can find a more detailed outline of my work.
+            If you want to dig into it, the paper and code are both public:
+          </p>
+          <p>
+            <a href="https://arxiv.org/abs/2607.14095" target="_blank" rel="noopener">arXiv paper →</a>
+          </p>
+          <p>
+            <a href="https://github.com/Pranubot/HG-RAG" target="_blank" rel="noopener">GitHub repo →</a>
+          </p>
+
+        </div>
+      </article>
+
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+  <script src="js/nav.js"></script>
+</body>
+</html>
