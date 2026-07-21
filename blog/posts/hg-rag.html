@@ -29,7 +29,7 @@
           <p>
             A few months ago I published my first independent research paper on arXiv:
             <a href="https://arxiv.org/abs/2607.14095" target="_blank" rel="noopener">HG-RAG: Hierarchy-Guided RAG for Structured Knowledge Graphs</a>.
-            I want to talk about my decision decisions and what I learned from doing independent research for the first time.
+            I want to talk about my design decisions and what I learned from doing independent research for the first time.
           </p>
           <p>
             This spring semester, I got done with my university’s Natural Language Processing class: 
@@ -52,7 +52,7 @@
           <p>
             A large portion of grading would be allocated to analyzing creativity and originality, so I 
             really wanted to nail down a unique vision. I thought back to an idea my team had for 2025 
-            CalHacks. Our goal was to use node graph maps in conjunction with a RAG retrieval system built 
+            <a href="https://www.calhacks.io/" target="_blank" rel="noopener">CalHacks</a>. Our goal was to use node graph maps in conjunction with a RAG retrieval system built 
             for this architecture to understand and build context in virtual game worlds. Recall those 
             map-based grand strategy games with many factions or countries; imagine if we had an AI system 
             that could efficiently retrieve from this map. And not only that, but also edit and build on top 
@@ -67,7 +67,7 @@
           </p>
           <h2>My Setup</h2>
           <p>
-            I wanted to develop a RAG architecture optimal for operating on node graphs with an emphasis on 
+            I wanted to develop a <a href="https://aws.amazon.com/what-is/retrieval-augmented-generation/" target="_blank" rel="noopener">RAG architecture</a> optimal for operating on node graphs with an emphasis on 
             hierarchical relationships. This style of data shows up frequently in our lives; apart from my 
             map-based video game example where a country contains states who contains cities, we can see this
              structure in superior-subordinate relationships and any other context where hierarchy and 
@@ -75,7 +75,7 @@
           </p>
           <p>
             Existing RAG operates on semantic similarity through vector embeddings. So relevant entities 
-            are encoded into dense vectors and compared to all others using cosine similarity. This system 
+            are encoded into dense vectors and compared to all others using  <a href="https://www.ibm.com/think/topics/cosine-similarity" target="_blank" rel="noopener">cosine similarity</a>. This system 
             performs well when pulling from flat-text documents; but room for improvement is visible when 
             looking at other data structures, like node-graphs. 
           </p>
@@ -128,7 +128,7 @@
             first instinct was to grade multi-hop responses like any other: keyword checking. This worked 
             well with the former 3 categories, since they had absolute answers. Multi-hop did not have this 
             luxury; there are multiple ways you can word an answer and retain correctness. A simple keyword 
-            search would not suffice with this added complexity, so I employed an LLM-as-a-judge. The name 
+            search would not suffice with this added complexity, so I employed an  <a href="https://en.wikipedia.org/wiki/LLM-as-a-Judge" target="_blank" rel="noopener">LLM-as-a-judge</a>. The name 
             is self explanatory: you have a second instance of an LLM to judge the first LLM’s response. This 
             solution initially sounded very hacky to me at first, but apparently its the industry standard 
             when grading LLM responses. I would use a second instance of my LLM and pass it the right context 

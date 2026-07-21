@@ -882,12 +882,16 @@ main {
   border-bottom: 1px solid var(--border);
 }
 
+.post-item:hover {
+  text-decoration: none;
+}
+
 .post-item:first-child {
   border-top: 1px solid var(--border);
 }
 
 .post-date {
-  font-size: 10px;
+  font-size: 15px;
   color: var(--text-dim);
   flex-shrink: 0;
   min-width: 76px;
@@ -895,7 +899,7 @@ main {
 }
 
 .post-title {
-  font-size: 0.82rem;
+  font-size: 1.0rem;
   color: var(--text-bright);
 }
 
@@ -926,14 +930,14 @@ main {
 }
 
 .post-article-meta {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-dim);
   letter-spacing: 0.05em;
 }
 
 .post-body {
   max-width: 860px;
-  font-size: 1.00rem;
+  font-size: 1.10rem;
   line-height: 1.85;
   color: var(--text);
 }
@@ -943,7 +947,7 @@ main {
 }
 
 .post-body h2 {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   font-weight: 600;
   color: var(--text-bright);
   margin: 2rem 0 0.6rem;
@@ -1004,6 +1008,7 @@ main {
 
 .post-back:hover {
   color: var(--accent);
+  text-decoration: none;
 }
 
 /* CONTACT */
