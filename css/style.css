@@ -620,7 +620,7 @@ main {
 }
 
 .exp-org {
-  font-size: 0.86rem;
+  font-size: 1.0rem;
   color: var(--accent);
   letter-spacing: 0.03em;
 }
