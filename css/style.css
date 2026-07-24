@@ -615,7 +615,7 @@ main {
 
 .exp-date {
   font-size: 0.86rem;
-  color: var(--text-dim);
+  color: var(--text-bright);
   white-space: nowrap;
 }
 
