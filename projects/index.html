@@ -32,8 +32,41 @@
 
       <!--PAPERS-->
       <div class="project-section">
-        <p class="project-section-label">papers</p>
+        <p class="project-section-label">Research</p>
         <div class="project-list">
+
+          <article class="project-card">
+            <div class="project-card-header">
+              <h2 class="project-card-title">Failure-Triggered VLM Diagnostics for Autonomous Precision Agriculture Missions </h2>
+              <span class="project-card-year">July 2026</span>
+            </div>
+            <div class="project-card-body">
+              <div class="project-card-content">
+                <p class="project-card-desc">
+                  My research poster for my internship at IoT4Ag, where I developed a framework to diagnose failures in Vision-Language Models (VLMs) 
+                  for autonomous precision agriculture missions executed by robots.
+                </p>
+                <ul class="exp-bullets">
+                  <li>Abstract: We employed a VLM to operate post-failure, producing structured, GPS-tagged diagnostic event reports that explain operational failures experienced by the agricultural robot during deployment. The result is a system that passively builds a detailed record of the robot’s difficulties during tasks paired with recommendations over the course of a mission, bridging the gap between robot perception and farmer decision-making. 
+                  </li>
+                </ul>
+                <div class="project-tags">
+                  <span class="tag">Python</span>
+                  <span class="tag">ROS2</span>
+                  <span class="tag">Docker</span>
+                </div>
+              </div>
+              <div class="project-card-media">
+                <img
+                  src="images/Projects/IoT4Ag_Poster_PYadav.png"
+                  class="project-poster-thumb"
+                  data-full="images/Projects/IoT4Ag_Poster_PYadav.png"
+                  alt="IoT4Ag Poster preview"
+                  title="Click to expand"
+                >
+              </div>
+            </div>
+          </article>
 
           <article class="project-card">
             <div class="project-card-header">
@@ -65,6 +98,7 @@
                 <img
                   src="images/Projects/HGRAG_Poster_small.png"
                   class="project-poster-thumb"
+                  data-full="images/Projects/HGRAG_Poster.png"
                   alt="HG-RAG Poster preview"
                   title="Click to expand"
                 >
@@ -206,21 +240,26 @@
 
   <!-- Poster lightbox -->
   <div class="lightbox" id="poster-lightbox">
-    <img src="images/Projects/HGRAG_Poster.png" alt="HG-RAG Poster (full size)">
+    <img src="" alt="Poster (full size)">
   </div>
 
   <div id="site-footer"></div>
   <script src="js/nav.js"></script>
   <script>
-    const thumb    = document.querySelector('.project-poster-thumb');
+    const thumbs   = document.querySelectorAll('.project-poster-thumb');
     const lightbox = document.getElementById('poster-lightbox');
-    if (thumb && lightbox) {
-      thumb.addEventListener('click', () => lightbox.classList.add('open'));
-      lightbox.addEventListener('click', () => lightbox.classList.remove('open'));
-      document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') lightbox.classList.remove('open');
+    const lbImg    = lightbox.querySelector('img');
+    thumbs.forEach(thumb => {
+      thumb.addEventListener('click', () => {
+        lbImg.src = thumb.dataset.full;
+        lbImg.alt = thumb.alt.replace('preview', '(full size)');
+        lightbox.classList.add('open');
       });
-    }
+    });
+    lightbox.addEventListener('click', () => lightbox.classList.remove('open'));
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') lightbox.classList.remove('open');
+    });
   </script>
 </body>
 </html>
