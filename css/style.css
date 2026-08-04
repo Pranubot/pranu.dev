@@ -658,6 +658,11 @@ main {
   margin-bottom: calc(var(--gap) * 1.5);
 }
 
+.project-section + .project-section {
+  border-top: 1px solid var(--border);
+  padding-top: calc(var(--gap) * 1.5);
+}
+
 .project-section-label {
   font-size: 10px;
   font-weight: 700;
@@ -673,15 +678,15 @@ main {
 }
 
 .project-card {
-  padding: 1.4rem 0;
+  padding: 1.75rem 0;
 }
 
 .project-card:first-child {
   padding-top: 0;
 }
 
-.project-card + .project-card {
-  border-top: 1px solid var(--border);
+.project-card:last-child {
+  padding-bottom: 0;
 }
 
 .project-card-header {
