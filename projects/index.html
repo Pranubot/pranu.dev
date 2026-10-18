@@ -16,8 +16,8 @@
   <main>
 
     <div class="page-banner-wrap">
-      <img src="images/Projects/project-banner.jpg" class="page-banner-img" alt="">
-      <div class="page-banner-title" aria-hidden="true">projects</div>
+      <canvas class="page-banner-canvas" data-seed="1" aria-hidden="true"></canvas>
+      <h1 class="page-banner-title">projects</h1>
     </div>
 
     <div class="wrapper">
@@ -284,6 +284,7 @@
 
   <div id="site-footer"></div>
   <script src="js/nav.js"></script>
+  <script src="js/dither.js"></script>
   <script>
     const thumbs   = document.querySelectorAll('.project-poster-thumb');
     const lightbox = document.getElementById('poster-lightbox');
