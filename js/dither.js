@@ -2,7 +2,7 @@
 //
 //   banners  <canvas class="page-banner-canvas" data-seed="N"> on inner pages
 //   media    project images / video / blog figures render dithered and
-//            dissolve to the original in Bayer order (hover, or on scroll-in)
+//            dissolve to the original while in the middle of the screen
 //   veil     Bayer dissolve when entering and leaving a page
 //
 // Palettes come from css/style.css: --dither-0..5 (greyscale, media) and
@@ -13,8 +13,7 @@
 
 // Config
 
-const MEDIA_HOVER  = '.project-card-img, .project-poster-thumb';
-const MEDIA_REVEAL = '.post-img';
+const MEDIA = '.project-card-img, .project-poster-thumb, .post-img';
 
 const CELL       = 2;    // css px per dither cell (media, banners)
 const VEIL_CELL  = 4;    // chunkier cells for page transitions
@@ -22,9 +21,9 @@ const FPS        = 24;
 const VEIL_IN_MS = 420;
 const VEIL_OUT_MS = 260;
 const REVEAL_MS  = 280;
+const FOCUS_BAND = '-35% 0px -35% 0px';  // the middle 30% of the viewport
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const canHover     = matchMedia('(hover: hover)').matches;
 
 // Helpers
 
@@ -240,7 +239,7 @@ function ditherPixels(src, out, w, h) {
 }
 
 class DitherMedia {
-  constructor(el, mode) {
+  constructor(el) {
     this.el = el;
     this.isVideo = el.tagName === 'VIDEO';
     this.t = 0;          // 0 = fully dithered, 1 = original showing
@@ -259,16 +258,12 @@ class DitherMedia {
     this.work = document.createElement('canvas');
     this.wctx = this.work.getContext('2d', { willReadFrequently: true });
 
-    if (mode === 'hover') {
-      this.wrap.addEventListener('mouseenter', () => this.animateTo(1));
-      this.wrap.addEventListener('mouseleave', () => this.animateTo(0));
-    } else {
-      const io = new IntersectionObserver(([e]) => {
-        if (e.isIntersecting) { this.animateTo(1); io.disconnect(); }
-      }, { threshold: 0.4 });
-      io.observe(this.wrap);
-    }
-    new IntersectionObserver(([e]) => { this.visible = e.isIntersecting; }).observe(this.wrap);
+    // clear while any part of it crosses the focus band, re-dither when it leaves.
+    // Entries can batch up during layout shifts, so always read the newest one.
+    const latest = entries => entries[entries.length - 1].isIntersecting;
+    new IntersectionObserver(entries => this.animateTo(latest(entries) ? 1 : 0),
+      { rootMargin: FOCUS_BAND }).observe(this.wrap);
+    new IntersectionObserver(entries => { this.visible = latest(entries); }).observe(this.wrap);
 
     const ready = () => { this.layout(); new ResizeObserver(() => this.layout()).observe(el); };
     if (this.isVideo ? el.readyState >= 2 : el.complete && el.naturalWidth) ready();
@@ -312,6 +307,7 @@ class DitherMedia {
   }
 
   paint() {
+    if (!this.w) return;  // not laid out yet (image still loading); layout() paints later
     const out = this.frame.data, src = this.dithered, th = this.thresholds, t = this.t;
     for (let i = 0, p = 0; i < th.length; i++, p += 4) {
       out[p] = src[p]; out[p + 1] = src[p + 1]; out[p + 2] = src[p + 2];
@@ -325,9 +321,9 @@ class DitherMedia {
     if (reduceMotion) { this.t = target; this.paint(); return; }
     if (this.animating) return;
     this.animating = true;
-    let last = performance.now();
+    let last = null;  // rAF timestamps can predate performance.now(), so start on the first frame
     const step = now => {
-      const dt = (now - last) / REVEAL_MS;
+      const dt = last === null ? 0 : (now - last) / REVEAL_MS;
       last = now;
       this.t += Math.sign(this.target - this.t) * Math.min(dt, Math.abs(this.target - this.t));
       if (this.isVideo && this.t < 1) this.sample(); else this.paint();
@@ -344,12 +340,8 @@ class DitherMedia {
 }
 
 function initMedia() {
-  const mode = canHover ? 'hover' : 'reveal';
-  document.querySelectorAll(MEDIA_HOVER).forEach(el => {
-    if (el.dataset.dither !== 'off') new DitherMedia(el, mode);
-  });
-  document.querySelectorAll(MEDIA_REVEAL).forEach(el => {
-    if (el.dataset.dither !== 'off') new DitherMedia(el, 'reveal');
+  document.querySelectorAll(MEDIA).forEach(el => {
+    if (el.dataset.dither !== 'off') new DitherMedia(el);
   });
 }
 
