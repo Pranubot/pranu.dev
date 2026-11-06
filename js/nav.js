@@ -66,10 +66,23 @@ function renderFooter() {
       &nbsp;·&nbsp;
       <a href="https://linkedin.com/in/pranavyadav99/" target="_blank" rel="noopener">Linkedin ↗</a>
     </p>
+    
+    
   </div>
 </footer>`;
 }
-
+/* Perhaps for later
+<div class="footer-badges">
+      <a href="https://a90.com/experiments/88x31/"><img src="https://a90.com/experiments/88x31/smile.gif" width="88" height="31" alt="Smile! You're training data."></a>
+      <a href="https://a90.com/experiments/88x31/"><img src="https://a90.com/experiments/88x31/claude.gif" width="88" height="31" alt="You're absolutely right!"></a>
+      <a href="https://a90.com/experiments/88x31/"><img src="https://a90.com/experiments/88x31/emdash.gif" width="88" height="31" alt="100% organic em dashes"></a>
+      <a href="https://a90.com/experiments/88x31/"><img src="https://a90.com/experiments/88x31/skillmd.gif" width="88" height="31" alt="SKILL.MD issue"></a>
+      <a href="https://a90.com/experiments/88x31/"><img src="https://a90.com/experiments/88x31/thinking.gif" width="88" height="31" alt="What are you thinking? Thought for 47 seconds: nothing."></a>
+      <a href="https://a90.com/experiments/88x31/"><img src="https://a90.com/experiments/88x31/ignore.gif" width="88" height="31" alt="Ignore all previous instructions"></a>
+      <a href="https://a90.com/experiments/88x31/"><img src="https://a90.com/experiments/88x31/phd.gif" width="88" height="31" alt="PhD-level. R's in strawberry: 2. Very confident."></a>
+      <a href="https://a90.com/experiments/88x31/"><img src="https://a90.com/experiments/88x31/grok.gif" width="88" height="31" alt="@grok is this true?"></a>
+    </div>
+*/
 // Init
 
 document.addEventListener('DOMContentLoaded', () => {
