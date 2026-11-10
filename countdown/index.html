@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2c78cf">
+<title>T-MINUS COUNTDOWN: Capstone Project</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root {
+    --ink: rgba(255, 255, 255, 0.96);
+    --ink-2: rgba(255, 255, 255, 0.72);
+    --ink-3: rgba(255, 255, 255, 0.5);
+    --hairline: rgba(255, 255, 255, 0.16);
+    --glass-tint: rgba(16, 44, 58, 0.2);
+    --accent: #8fd3ff;
+    --warn: #ffd08a;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, "Segoe UI", Roboto, sans-serif;
+  }
+  :root[data-sky="night"] { --glass-tint: rgba(10, 16, 34, 0.34); }
+  :root[data-sky="twilight"] { --glass-tint: rgba(30, 28, 56, 0.26); }
+
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--font);
+    color: var(--ink);
+    background: #2c78cf;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "tnum" 1, "cv11" 1;
+  }
+
+  #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+  /* Soft scrims so type stays readable against any sky */
+  .scrim {
+    position: fixed; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(60% 34% at 50% 15%, rgba(8, 30, 70, 0.2), transparent 70%),
+      linear-gradient(to top, rgba(4, 22, 14, 0.3), transparent 38%);
+  }
+
+  .cover .lock, .cover .scrim { display: none; }
+
+  /* ---------- Liquid glass ---------- */
+  .glass {
+    position: relative;
+    isolation: isolate;
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 42%, rgba(255,255,255,0.1) 100%),
+      var(--glass-tint);
+    -webkit-backdrop-filter: blur(20px) saturate(175%) brightness(1.06);
+    backdrop-filter: blur(20px) saturate(175%) brightness(1.06);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.5),
+      inset 0 -1px 0 rgba(255,255,255,0.1),
+      inset 0 0 28px rgba(255,255,255,0.05),
+      0 20px 50px -14px rgba(0, 18, 36, 0.42),
+      0 2px 6px rgba(0, 18, 36, 0.12);
+    transition: background-color 1.2s ease;
+  }
+  /* specular rim: bright at the top-left and bottom-right, like light bending through an edge */
+  .glass::before {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+    background: linear-gradient(140deg, rgba(255,255,255,0.85), rgba(255,255,255,0.12) 28%, rgba(255,255,255,0.04) 62%, rgba(255,255,255,0.5));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    pointer-events: none; z-index: 2;
+  }
+
+  /* ---------- Layout ---------- */
+  .lock {
+    position: fixed; inset: 0;
+    padding: max(28px, env(safe-area-inset-top)) max(28px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(28px, env(safe-area-inset-left));
+    display: flex; flex-direction: column; align-items: center;
+  }
+
+  /* ---------- Clock ---------- */
+  .clock { text-align: center; margin-top: clamp(4px, 3vh, 36px); text-shadow: 0 2px 24px rgba(0, 24, 60, 0.35); }
+  .date { font-size: clamp(17px, 1.5vw, 22px); font-weight: 600; letter-spacing: 0.01em; color: var(--ink); opacity: 0.92; }
+  .time {
+    font-size: clamp(92px, 15vh, 172px);
+    line-height: 0.98; font-weight: 600; letter-spacing: -0.035em;
+    margin-top: 2px;
+    color: rgba(255,255,255,0.94);
+  }
+  .weather {
+    display: inline-flex; align-items: center; gap: 10px;
+    margin-top: 14px; padding: 8px 16px 8px 12px; border-radius: 999px;
+    font-size: 14px; font-weight: 500; color: var(--ink); text-shadow: none;
+    white-space: nowrap;
+  }
+  .weather svg { width: 20px; height: 20px; flex: none; }
+  .weather .temp { font-weight: 600; font-size: 15px; }
+  .weather .sep { width: 1px; height: 14px; background: var(--hairline); }
+  .weather .dim { color: var(--ink-2); }
+
+  /* ---------- Countdown card ---------- */
+  .card {
+    position: absolute; left: max(28px, env(safe-area-inset-left)); bottom: max(28px, env(safe-area-inset-bottom));
+    width: 392px; border-radius: 30px; padding: 20px 20px 16px;
+    display: flex; flex-direction: column; min-height: 0;
+    max-height: calc(100% - 56px);
+  }
+  .card h2 { font-size: 21px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; }
+  .card h2 .eyebrow {
+    display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; color: var(--ink-2); margin-bottom: 3px;
+  }
+
+  .tminus { margin-top: 14px; }
+  .digits { display: flex; align-items: flex-start; gap: 6px; }
+  .digits .sign { font-size: 40px; line-height: 1; font-weight: 500; color: var(--ink-2); letter-spacing: -0.02em; margin-right: 4px; }
+  .digits .unit { display: flex; flex-direction: column; align-items: center; min-width: 54px; }
+  .digits b { font-size: 40px; line-height: 1; font-weight: 600; letter-spacing: -0.02em; }
+  .digits small { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-top: 5px; }
+  .digits .colon { font-size: 32px; line-height: 38px; font-weight: 400; color: var(--ink-3); }
+  .tminus.overdue .sign, .tminus.overdue b { color: var(--warn); }
+  .tminus .banner { display: none; font-size: 30px; line-height: 1.15; font-weight: 600; letter-spacing: -0.02em; }
+  .tminus.message .digits { display: none; }
+  .tminus.message .banner { display: block; }
+  .until { margin-top: 10px; font-size: 13.5px; color: var(--ink-2); }
+  .until strong { color: var(--ink); font-weight: 600; }
+
+  .progress { display: flex; gap: 5px; margin-top: 14px; }
+  .progress i { flex: 1; height: 4px; border-radius: 4px; background: rgba(255,255,255,0.2); transition: background 0.35s ease; }
+  .progress i.done { background: rgba(255,255,255,0.92); }
+
+  .milestones { list-style: none; padding: 0; margin: 10px -8px 0; overflow-y: auto; min-height: 0; scrollbar-width: none; }
+  .milestones::-webkit-scrollbar { display: none; }
+  .milestones li { display: flex; align-items: center; border-radius: 14px; transition: background 0.2s ease; }
+  .milestones li:hover { background: rgba(255,255,255,0.08); }
+  .milestones li.next { background: rgba(255,255,255,0.13); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14); }
+  .milestones label { flex: 1; display: flex; align-items: center; gap: 12px; padding: 9px 4px 9px 8px; cursor: pointer; min-width: 0; }
+  .milestones input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .check {
+    flex: none; width: 22px; height: 22px; border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.65);
+    display: grid; place-items: center;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  }
+  .check svg { width: 12px; height: 12px; opacity: 0; transform: scale(0.5); transition: opacity 0.2s ease, transform 0.25s cubic-bezier(.3,1.6,.5,1); }
+  input:checked + .check { background: #fff; border-color: #fff; }
+  input:checked + .check svg { opacity: 1; transform: scale(1); }
+  input:focus-visible + .check { outline: 2px solid var(--accent); outline-offset: 2px; }
+  label:active .check { transform: scale(0.9); }
+  .name { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 500; line-height: 1.25; transition: opacity 0.2s ease; }
+  .when { flex: none; text-align: right; line-height: 1.2; }
+  .when .d { display: block; font-size: 13px; font-weight: 600; }
+  .when .r { display: block; font-size: 11.5px; color: var(--ink-2); margin-top: 1px; }
+  li.soon .when .r { color: var(--warn); }
+  li.late .when .r { color: var(--warn); font-weight: 600; }
+  li.done .name { opacity: 0.5; text-decoration: line-through; text-decoration-color: rgba(255,255,255,0.5); }
+  li.done .when { opacity: 0.5; }
+  .gcal {
+    flex: none; width: 32px; height: 32px; margin-right: 4px; border-radius: 10px;
+    display: grid; place-items: center; color: var(--ink-3); transition: color 0.2s, background 0.2s;
+  }
+  .gcal:hover, .gcal:focus-visible { color: var(--ink); background: rgba(255,255,255,0.14); outline: none; }
+  .gcal svg { width: 16px; height: 16px; }
+
+  .card footer {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 10px; padding-top: 12px; border-top: 1px solid var(--hairline);
+    font-size: 12.5px; color: var(--ink-2);
+  }
+  .btn {
+    font: inherit; font-weight: 600; color: var(--ink); cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 12px; border-radius: 999px; border: 0;
+    background: rgba(255,255,255,0.14); box-shadow: inset 0 1px 0 rgba(255,255,255,0.3);
+    transition: background 0.2s ease, transform 0.15s ease;
+  }
+  .btn:hover { background: rgba(255,255,255,0.24); }
+  .btn:active { transform: scale(0.97); }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn svg { width: 14px; height: 14px; }
+
+  /* ---------- Sky preview switch ---------- */
+  .sky-switch {
+    position: absolute; right: max(28px, env(safe-area-inset-right)); bottom: max(28px, env(safe-area-inset-bottom));
+    display: flex; gap: 2px; padding: 4px; border-radius: 999px;
+    opacity: 0.72; transition: opacity 0.3s ease;
+  }
+  .sky-switch:hover, .sky-switch:focus-within { opacity: 1; }
+  .sky-switch button {
+    font: inherit; font-size: 12.5px; font-weight: 600; color: var(--ink-2); cursor: pointer;
+    border: 0; background: transparent; padding: 6px 12px; border-radius: 999px;
+    transition: background 0.25s ease, color 0.25s ease;
+  }
+  .sky-switch button:hover { color: var(--ink); }
+  .sky-switch button[aria-pressed="true"] { color: var(--ink); background: rgba(255,255,255,0.24); box-shadow: inset 0 1px 0 rgba(255,255,255,0.4); }
+  .sky-switch button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .live-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #7dffa8; margin-right: 6px; vertical-align: 1px; box-shadow: 0 0 8px #7dffa8; }
+
+  /* ---------- Phone / narrow ---------- */
+  @media (max-width: 760px) {
+    .lock { padding: max(18px, env(safe-area-inset-top)) 12px max(10px, env(safe-area-inset-bottom)); }
+    .clock { margin-top: clamp(14px, 4vh, 44px); }
+    .time { font-size: clamp(84px, 25vw, 112px); }
+    .weather { font-size: 13px; gap: 8px; padding: 7px 14px 7px 10px; }
+    .weather .wind, .weather .wind-sep { display: none; }
+    .card { position: relative; left: auto; bottom: auto; margin-top: auto; width: 100%; padding: 14px 16px 8px; border-radius: 28px; max-height: 56%; flex: 0 1 auto; }
+    .sky-switch { position: static; order: 3; margin-top: 8px; align-self: center; }
+    .sky-switch button { padding: 4px 11px; font-size: 12px; }
+    .card h2 { font-size: 18px; padding-right: 44px; }
+    .tminus { margin-top: 10px; }
+    .digits b, .digits .sign { font-size: 32px; }
+    .digits .colon { font-size: 24px; line-height: 30px; }
+    .digits .unit { min-width: 46px; }
+    .digits small { margin-top: 3px; }
+    .until { margin-top: 7px; font-size: 13px; }
+    .progress { margin-top: 10px; }
+    .milestones { margin-top: 6px; }
+    .milestones label { padding: 6px 4px 6px 8px; gap: 10px; }
+    .check { width: 20px; height: 20px; }
+    .name { font-size: 14px; }
+    .when { display: flex; align-items: baseline; gap: 6px; }
+    .when .r { margin: 0; min-width: 62px; }
+    .gcal { display: none; }
+    .card footer { position: absolute; top: 12px; right: 12px; margin: 0; padding: 0; border: 0; }
+    #done-count, #ics span { display: none; }
+    #ics { padding: 9px; }
+    #ics svg { width: 16px; height: 16px; }
+  }
+  @media (max-height: 620px) and (min-width: 761px) {
+    .time { font-size: 84px; }
+    .card { padding: 16px 18px 12px; }
+    .milestones label { padding: 6px 4px 6px 8px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition-duration: 0.01ms !important; } }
+</style>
+</head>
+<body>
+
+<canvas id="scene" aria-hidden="true"></canvas>
+<div class="scrim"></div>
+
+<main class="lock">
+  <header class="clock">
+    <p class="date" id="date">&nbsp;</p>
+    <h1 class="time" id="time">&nbsp;</h1>
+    <div class="weather glass" id="weather" aria-live="polite">
+      <span id="wx-icon"></span>
+      <span class="temp" id="wx-temp">--°</span>
+      <span id="wx-desc">Merced</span>
+      <span class="sep"></span>
+      <span class="dim" id="wx-hilo">Merced, CA</span>
+      <span class="sep wind-sep"></span>
+      <span class="dim wind" id="wx-wind">-- mph</span>
+    </div>
+  </header>
+
+  <nav class="sky-switch glass" aria-label="Sky preview">
+    <button data-sky="live" aria-pressed="true"><span class="live-dot"></span>Live</button>
+    <button data-sky="dawn" aria-pressed="false">Dawn</button>
+    <button data-sky="day" aria-pressed="false">Day</button>
+    <button data-sky="dusk" aria-pressed="false">Dusk</button>
+    <button data-sky="night" aria-pressed="false">Night</button>
+  </nav>
+
+  <section class="card glass" aria-labelledby="card-title">
+    <h2 id="card-title"><span class="eyebrow">T-MINUS COUNTDOWN:</span> Capstone Project</h2>
+
+    <div class="tminus" id="tminus">
+      <div class="digits" role="timer" aria-label="Time until next milestone">
+        <span class="sign" id="t-sign">T&minus;</span>
+        <span class="unit"><b id="t-d">00</b><small>days</small></span><span class="colon">:</span>
+        <span class="unit"><b id="t-h">00</b><small>hrs</small></span><span class="colon">:</span>
+        <span class="unit"><b id="t-m">00</b><small>min</small></span><span class="colon">:</span>
+        <span class="unit"><b id="t-s">00</b><small>sec</small></span>
+      </div>
+      <div class="banner" id="t-banner"></div>
+      <p class="until" id="until"></p>
+    </div>
+
+    <div class="progress" id="progress" aria-hidden="true"></div>
+    <ol class="milestones" id="milestones"></ol>
+
+    <footer>
+      <span id="done-count">0 of 6 done</span>
+      <button class="btn" id="ics" aria-label="Add all milestones to calendar" title="Download all six milestones as all-day calendar events with a day-of reminder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4M12 13v5M9.5 15.5h5"/></svg>
+        <span>Add all to calendar</span>
+      </button>
+    </footer>
+  </section>
+</main>
+
+<script>
+/* =====================================================================
+   1. MILESTONES, COUNTDOWN, CLOCK
+   ===================================================================== */
+// "due" items count down to 11:59 PM that day; "event" items count down to the start of the day.
+const MILESTONES = [
+  { id: 'm1', date: [2026, 11, 12], title: 'Demo MVP in Lab', kind: 'event' },
+  { id: 'm2', date: [2026, 11, 21], title: 'Lab 4.3 Due', kind: 'due' },
+  { id: 'm3', date: [2026, 12, 5],  title: 'Lab 4.4 Due', kind: 'due' },
+  { id: 'm4', date: [2026, 12, 6],  title: 'Initial Project Draft Due', kind: 'due' },
+  { id: 'm5', date: [2026, 12, 13], title: 'Final Project Draft Due', kind: 'due' },
+  { id: 'm6', date: [2026, 12, 17], title: 'Final Conference for Project Showcase', kind: 'event' },
+];
+MILESTONES.forEach(m => {
+  const [y, mo, d] = m.date;
+  m.dayStart = new Date(y, mo - 1, d);
+  m.dayEnd = new Date(y, mo - 1, d, 23, 59, 59);
+  m.target = m.kind === 'due' ? m.dayEnd : m.dayStart;
+  m.short = m.dayStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  m.long = m.dayStart.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+});
+
+const STORE = 'capstone_tasks_state';
+let done = {};
+try { done = JSON.parse(localStorage.getItem(STORE) || '{}') || {}; } catch (e) { done = {}; }
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify(done)); } catch (e) {} };
+
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+const nextDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+const nextMilestone = () => MILESTONES.find(m => !done[m.id]);
+
+function gcalUrl(m) {
+  const p = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `Capstone: ${m.title}`,
+    dates: `${ymd(m.dayStart)}/${ymd(nextDay(m.dayStart))}`,
+    details: 'T-MINUS COUNTDOWN: Capstone Project milestone',
+  });
+  return 'https://calendar.google.com/calendar/render?' + p.toString();
+}
+
+function relLabel(m, now) {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const days = Math.round((m.dayStart - today) / 864e5);
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Tomorrow';
+  if (days > 1) return `in ${days} days`;
+  return days === -1 ? 'Yesterday' : `${-days} days ago`;
+}
+
+function renderMilestones() {
+  const now = new Date();
+  const next = nextMilestone();
+  const list = $('milestones');
+  list.innerHTML = '';
+  MILESTONES.forEach(m => {
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const days = Math.round((m.dayStart - today) / 864e5);
+    const li = document.createElement('li');
+    if (done[m.id]) li.classList.add('done');
+    else if (days < 0) li.classList.add('late');
+    else if (days <= 3) li.classList.add('soon');
+    if (next && next.id === m.id) li.classList.add('next');
+    li.innerHTML = `
+      <label>
+        <input type="checkbox" ${done[m.id] ? 'checked' : ''}>
+        <span class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#1d4a3a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.4l2.3 2.3 4.7-5.2"/></svg></span>
+        <span class="name">${m.title}</span>
+        <span class="when"><span class="d">${m.short}</span><span class="r">${done[m.id] ? 'Done' : relLabel(m, now)}</span></span>
+      </label>
+      <a class="gcal" href="${gcalUrl(m)}" target="_blank" rel="noopener" title="Add to Google Calendar" aria-label="Add ${m.title} to Google Calendar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4M12 13v5M9.5 15.5h5"/></svg>
+      </a>`;
+    li.querySelector('input').addEventListener('change', e => {
+      done[m.id] = e.target.checked;
+      save();
+      renderMilestones();
+      tick();
+    });
+    list.appendChild(li);
+  });
+  const count = MILESTONES.filter(m => done[m.id]).length;
+  $('done-count').textContent = `${count} of ${MILESTONES.length} done`;
+  $('progress').innerHTML = MILESTONES.map(m => `<i class="${done[m.id] ? 'done' : ''}"></i>`).join('');
+}
+
+let lastDay = -1;
+function tick() {
+  const now = new Date();
+
+  // Lock-screen clock
+  $('time').textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).replace(/\s?[AP]M/i, '');
+  $('date').textContent = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  if (now.getDate() !== lastDay) { if (lastDay !== -1) renderMilestones(); lastDay = now.getDate(); }
+
+  // T-minus to the next unchecked milestone
+  const m = nextMilestone();
+  const box = $('tminus');
+  box.classList.remove('overdue', 'message');
+  if (!m) {
+    box.classList.add('message');
+    $('t-banner').textContent = 'All milestones complete';
+    $('until').innerHTML = 'Capstone wrapped. Enjoy the view.';
+    return;
+  }
+  if (now >= m.target && now <= m.dayEnd) {
+    box.classList.add('message');
+    $('t-banner').textContent = "It's today";
+    $('until').innerHTML = `<strong>${m.title}</strong> · ${m.long}`;
+    return;
+  }
+  const late = now > m.dayEnd;
+  let s = Math.floor(Math.abs((late ? m.dayEnd : m.target) - now) / 1000);
+  const d = Math.floor(s / 86400); s -= d * 86400;
+  const h = Math.floor(s / 3600); s -= h * 3600;
+  const mi = Math.floor(s / 60); s -= mi * 60;
+  $('t-sign').textContent = late ? 'T+' : 'T−';
+  $('t-d').textContent = pad(d); $('t-h').textContent = pad(h); $('t-m').textContent = pad(mi); $('t-s').textContent = pad(s);
+  box.classList.toggle('overdue', late);
+  $('until').innerHTML = `${late ? 'past' : 'until'} <strong>${m.title}</strong> · ${m.long}`;
+}
+
+// .ics export: all-day events, each with a reminder at 9 AM on the day itself
+$('ics').addEventListener('click', () => {
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//T-MINUS Capstone Project//EN', 'CALSCALE:GREGORIAN'];
+  MILESTONES.forEach(m => {
+    lines.push('BEGIN:VEVENT', `UID:${m.id}-capstone-2026@tminus`, `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${ymd(m.dayStart)}`, `DTEND;VALUE=DATE:${ymd(nextDay(m.dayStart))}`,
+      `SUMMARY:Capstone: ${m.title}`, 'DESCRIPTION:T-MINUS COUNTDOWN: Capstone Project milestone', 'TRANSP:TRANSPARENT',
+      'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:Today: ${m.title}`, 'TRIGGER:PT9H', 'END:VALARM', 'END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  const url = URL.createObjectURL(new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: 'capstone-milestones.ics' });
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+/* =====================================================================
+   2. LIVE WEATHER: Merced, CA (Open-Meteo, no key needed)
+   ===================================================================== */
+const MERCED = { lat: 37.3022, lon: -120.483 };
+const wx = { wind: 6, cover: 0.45, code: 1, loaded: false };
+
+const ICON = {
+  sun: '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/>',
+  moon: '<path d="M20 14.2A8 8 0 1 1 9.8 4a6.4 6.4 0 0 0 10.2 10.2z"/>',
+  cloud: '<path d="M7 18.5h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.1 11.6 3.5 3.5 0 0 0 7 18.5z"/>',
+  partly: '<path d="M8.2 4.2v1.4M3.6 6.1l1 1M2.2 10.6h1.4M12.8 6.1l-1 1"/><path d="M5.6 11.2a3.2 3.2 0 0 1 5.3-3"/><path d="M9 19.5h8.2a3.4 3.4 0 0 0 .5-6.76A5.1 5.1 0 0 0 8.2 13.6 3 3 0 0 0 9 19.5z"/>',
+  partlyNight: '<path d="M13.5 3.2a4.6 4.6 0 0 0 5.9 5.9 4.9 4.9 0 0 1-1 1.6"/><path d="M7.5 19.5h8.2a3.4 3.4 0 0 0 .5-6.76A5.1 5.1 0 0 0 6.7 13.6a3 3 0 0 0 .8 5.9z"/>',
+  fog: '<path d="M7 14h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.1 7.1 3.5 3.5 0 0 0 7 14z"/><path d="M5 17.5h14M7 21h10"/>',
+  rain: '<path d="M7 14.5h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.1 7.6 3.5 3.5 0 0 0 7 14.5z"/><path d="M8.5 17.5l-1 3M12.5 17.5l-1 3M16.5 17.5l-1 3"/>',
+  snow: '<path d="M7 14.5h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.1 7.6 3.5 3.5 0 0 0 7 14.5z"/><path d="M8 18.5h.01M12 18.5h.01M16 18.5h.01M10 21.5h.01M14 21.5h.01"/>',
+  storm: '<path d="M7 14.5h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.1 7.6 3.5 3.5 0 0 0 7 14.5z"/><path d="M12.5 15.5l-2 3.2h3l-2 3.3"/>',
+};
+const svgIcon = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>`;
+
+function describe(code, night) {
+  if (code === 0) return ['Clear', night ? 'moon' : 'sun'];
+  if (code === 1) return ['Mostly clear', night ? 'moon' : 'sun'];
+  if (code === 2) return ['Partly cloudy', night ? 'partlyNight' : 'partly'];
+  if (code === 3) return ['Overcast', 'cloud'];
+  if (code === 45 || code === 48) return ['Fog', 'fog'];
+  if (code >= 51 && code <= 57) return ['Drizzle', 'rain'];
+  if (code >= 61 && code <= 67) return ['Rain', 'rain'];
+  if (code >= 71 && code <= 77) return ['Snow', 'snow'];
+  if (code >= 80 && code <= 82) return ['Showers', 'rain'];
+  if (code >= 85 && code <= 86) return ['Snow showers', 'snow'];
+  if (code >= 95) return ['Thunderstorm', 'storm'];
+  return ['Merced', 'cloud'];
+}
+
+let isNight = false;
+function paintWeatherIcon() {
+  const [label, icon] = describe(wx.code, isNight);
+  $('wx-icon').innerHTML = svgIcon(wx.loaded ? icon : (isNight ? 'moon' : 'sun'));
+  if (wx.loaded) $('wx-desc').textContent = label;
+}
+
+async function loadWeather() {
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${MERCED.lat}&longitude=${MERCED.lon}` +
+      '&current=temperature_2m,weather_code,wind_speed_10m,cloud_cover&daily=temperature_2m_max,temperature_2m_min' +
+      '&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America%2FLos_Angeles&forecast_days=1';
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(r.status);
+    const j = await r.json();
+    wx.code = j.current.weather_code;
+    wx.wind = j.current.wind_speed_10m;
+    wx.cover = Math.min(0.8, Math.max(0.28, j.current.cloud_cover / 100));
+    wx.loaded = true;
+    $('wx-temp').textContent = Math.round(j.current.temperature_2m) + '°';
+    $('wx-hilo').textContent = `Merced · H ${Math.round(j.daily.temperature_2m_max[0])}° L ${Math.round(j.daily.temperature_2m_min[0])}°`;
+    $('wx-wind').textContent = `Wind ${Math.round(wx.wind)} mph`;
+  } catch (e) {
+    if (!wx.loaded) { $('wx-desc').textContent = 'Weather unavailable'; $('wx-hilo').textContent = 'Merced, CA'; }
+  }
+  paintWeatherIcon();
+}
+
+/* =====================================================================
+   3. THE VIEW FROM CA-152: sky, hills, turbines
+   ===================================================================== */
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const DEG = Math.PI / 180;
+
+// --- sun position for Merced at a given wall-clock hour ---
+function solar(hour, date) {
+  const start = new Date(date.getFullYear(), 0, 0);
+  const N = Math.floor((date - start) / 864e5);
+  const B = 2 * Math.PI * (N - 81) / 364;
+  const eot = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);       // minutes
+  const dst = date.getTimezoneOffset() < new Date(date.getFullYear(), 0, 1).getTimezoneOffset() ? 1 : 0;
+  const solarTime = hour - dst + (eot + 4 * (MERCED.lon + 120)) / 60;
+  const decl = 23.44 * DEG * Math.sin(2 * Math.PI * (284 + N) / 365);
+  const H = 15 * (solarTime - 12);                                                   // hour angle, degrees
+  const lat = MERCED.lat * DEG;
+  const sinEl = Math.sin(lat) * Math.sin(decl) + Math.cos(lat) * Math.cos(decl) * Math.cos(H * DEG);
+  return { el: Math.asin(sinEl) / DEG, H: ((H + 540) % 360) - 180 };
+}
+function sunTimes(date) {
+  let rise = 6.5, set = 17;
+  for (let h = 0, prev = solar(0, date).el; h <= 24; h += 1 / 60) {
+    const e = solar(h, date).el;
+    if (prev < -0.8 && e >= -0.8) rise = h;
+    if (prev >= -0.8 && e < -0.8) set = h;
+    prev = e;
+  }
+  return { rise, set };
+}
+
+// --- deterministic value noise for the terrain ---
+function hash2(x, y) { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); }
+function vnoise(x, y) {
+  const xi = Math.floor(x), yi = Math.floor(y); let xf = x - xi, yf = y - yi;
+  xf = xf * xf * (3 - 2 * xf); yf = yf * yf * (3 - 2 * yf);
+  const a = hash2(xi, yi), b = hash2(xi + 1, yi), c = hash2(xi, yi + 1), d = hash2(xi + 1, yi + 1);
+  return a + (b - a) * xf + (c - a) * yf + (a - b - c + d) * xf * yf;
+}
+function fbm(x, y) { let a = 0.5, s = 0; for (let i = 0; i < 4; i++) { s += a * vnoise(x, y); x = x * 2.03 + 17; y = y * 2.03 + 9; a *= 0.5; } return s / 0.9375; }
+
+// Rolling ridges: a main crest for the turbines, then three hazier ranges stacked behind it.
+function heightAt(x, z) {
+  const g = (zc, w) => Math.exp(-(((z - zc) / w) ** 2));
+  let h = 0;
+  h += (19 + 5 * Math.sin(x * 0.016 + 1.3) + 3 * Math.sin(x * 0.037 + 4.0)) * g(-5 + 14 * Math.sin(x * 0.010 + 0.6), 42);
+  h += (25 + 7 * Math.sin(x * 0.012 + 0.3)) * g(-78 + 20 * Math.sin(x * 0.007 + 2.2), 50);
+  h += (44 + 10 * Math.sin(x * 0.006 + 1.0) + 4 * Math.sin(x * 0.021)) * g(-205, 70);
+  h += (66 + 14 * Math.sin(x * 0.004 + 2.6) + 6 * Math.sin(x * 0.013 + 0.8)) * g(-350, 80);
+  h += 4 * g(78, 30) * (0.5 + 0.5 * Math.sin(x * 0.021 + 1.0));
+  h += 7 * (fbm(x * 0.009, z * 0.009) - 0.5) + 1.4 * (vnoise(x * 0.04, z * 0.04) - 0.5);
+  return h;
+}
+
+const GLSL_NOISE = `
+  float hash(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+  float noise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+    return mix(mix(hash(i), hash(i + vec2(1., 0.)), f.x), mix(hash(i + vec2(0., 1.)), hash(i + vec2(1., 1.)), f.x), f.y); }
+  float fbm(vec2 p){ float a = .5, s = 0.; for (int i = 0; i < 5; i++){ s += a * noise(p); p = p * 2.03 + vec2(17., 9.); a *= .5; } return s; }
+`;
+
+const canvas = $('scene');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (e) { renderer = null; }
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, 1, 0.5, 4000);
+const CAM_Z = 105;
+const CAM_Y = heightAt(0, CAM_Z) + 12;
+
+// --- sky dome: gradient, sun, moon, stars and drifting clouds in one shader ---
+const skyU = {
+  uZenith: { value: new THREE.Color() }, uHorizon: { value: new THREE.Color() },
+  uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uSunCol: { value: new THREE.Color() },
+  uMoonDir: { value: new THREE.Vector3(0, 1, 0) },
+  uCloudLit: { value: new THREE.Color() }, uCloudShade: { value: new THREE.Color() },
+  uTime: { value: 0 }, uCover: { value: 0.45 }, uStars: { value: 0 }, uSunVis: { value: 1 }, uMoonVis: { value: 0 },
+};
+const sky = new THREE.Mesh(
+  new THREE.SphereGeometry(2000, 48, 24),
+  new THREE.ShaderMaterial({
+    uniforms: skyU, side: THREE.BackSide, depthTest: false, depthWrite: false, fog: false,
+    vertexShader: `varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
+    fragmentShader: `
+      precision highp float;
+      varying vec3 vDir;
+      uniform vec3 uZenith, uHorizon, uSunDir, uSunCol, uMoonDir, uCloudLit, uCloudShade;
+      uniform float uTime, uCover, uStars, uSunVis, uMoonVis;
+      ${GLSL_NOISE}
+      float hash3(vec3 p){ p = fract(p * .3183099 + .1); p *= 17.; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+      void main(){
+        vec3 d = normalize(vDir);
+        float h = clamp(d.y, 0., 1.);
+        vec3 col = mix(uHorizon, uZenith, pow(h, .5));
+
+        float sd = max(dot(d, uSunDir), 0.);
+        col += uSunCol * (pow(sd, 5.) * .22 + pow(sd, 48.) * .3) * uSunVis;
+
+        // stars
+        vec3 sp = d * 420.; vec3 ip = floor(sp); vec3 fp = fract(sp) - .5;
+        float r = hash3(ip);
+        float star = step(.988, r) * smoothstep(.42, .05, length(fp)) * (.55 + .45 * sin(uTime * 1.3 + r * 90.));
+        col += vec3(.85, .92, 1.) * star * uStars * smoothstep(.03, .3, d.y);
+
+        // moon
+        float md = dot(d, uMoonDir);
+        col += vec3(.5, .62, .9) * (pow(max(md, 0.), 220.) * .3 + pow(max(md, 0.), 24.) * .06) * uMoonVis;
+        col = mix(col, vec3(.95, .96, 1.), smoothstep(.99984, .99991, md) * uMoonVis);
+
+        // sun disc
+        col = mix(col, mix(uSunCol, vec3(1.), .65), smoothstep(.99955, .9998, dot(d, uSunDir)) * uSunVis);
+
+        // clouds: one flat layer overhead, stretched sideways into soft bands
+        vec2 uv = d.xz / (d.y + .14) * vec2(.5, 1.05);
+        vec2 drift = vec2(uTime * .010, uTime * .003);
+        float n = fbm(uv * 1.5 + drift);
+        float nSun = fbm(uv * 1.5 + drift + normalize(uSunDir.xz + vec2(.0001)) * .16 + vec2(0., .05));
+        float edge = mix(.70, .40, uCover);
+        float dens = smoothstep(edge, edge + .17, n + (noise(uv * 9. + drift * 3.) - .5) * .05) * smoothstep(-.02, .09, d.y);
+        float lightAmt = clamp((n - nSun) * 3.2 + .62, 0., 1.);
+        vec3 cc = mix(uCloudShade, uCloudLit, lightAmt);
+        cc += uSunCol * pow(sd, 9.) * .22 * uSunVis;
+        col = mix(col, cc, dens * .93);
+
+        // haze where sky meets land
+        col = mix(col, uHorizon, smoothstep(.13, 0., d.y) * .65);
+        gl_FragColor = vec4(col, 1.);
+      }`,
+  })
+);
+sky.renderOrder = -1; sky.frustumCulled = false;
+scene.add(sky);
+
+// --- terrain ---
+const landU = {
+  uLightDir: { value: new THREE.Vector3(0.3, 0.6, 0.6).normalize() },
+  uSunCol: { value: new THREE.Color() }, uAmb: { value: new THREE.Color() }, uFog: { value: new THREE.Color() },
+  uTime: { value: 0 }, uShadow: { value: 1 }, uFogNear: { value: 120 }, uFogFar: { value: 540 },
+};
+(function buildLand() {
+  const X0 = -620, X1 = 620, Z0 = -460, Z1 = 150, NX = 340, NZ = 190;
+  const pos = new Float32Array((NX + 1) * (NZ + 1) * 3), col = new Float32Array((NX + 1) * (NZ + 1) * 3);
+  const deep = [0.19, 0.39, 0.13], bright = [0.44, 0.63, 0.2];
+  let p = 0;
+  for (let j = 0; j <= NZ; j++) {
+    for (let i = 0; i <= NX; i++) {
+      const x = X0 + (X1 - X0) * i / NX, z = Z0 + (Z1 - Z0) * j / NZ, y = heightAt(x, z);
+      pos[p] = x; pos[p + 1] = y; pos[p + 2] = z;
+      // crests catch more light and dry out a little; hollows stay deeper green
+      const lift = (heightAt(x, z) - (heightAt(x - 9, z) + heightAt(x + 9, z) + heightAt(x, z - 9) + heightAt(x, z + 9)) / 4) * 0.35;
+      const t = Math.min(1, Math.max(0, 0.48 + lift + (fbm(x * 0.02 + 40, z * 0.02) - 0.5) * 0.9));
+      for (let k = 0; k < 3; k++) col[p + k] = deep[k] + (bright[k] - deep[k]) * t;
+      p += 3;
+    }
+  }
+  const idx = new Uint32Array(NX * NZ * 6); let q = 0;
+  for (let j = 0; j < NZ; j++) for (let i = 0; i < NX; i++) {
+    const a = j * (NX + 1) + i, b = a + 1, c = a + NX + 1, d = c + 1;
+    idx[q++] = a; idx[q++] = c; idx[q++] = b; idx[q++] = b; idx[q++] = c; idx[q++] = d;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('aCol', new THREE.BufferAttribute(col, 3));
+  geo.setIndex(new THREE.BufferAttribute(idx, 1));
+  geo.computeVertexNormals();
+  const land = new THREE.Mesh(geo, new THREE.ShaderMaterial({
+    uniforms: landU,
+    vertexShader: `attribute vec3 aCol; varying vec3 vW, vN, vC;
+      void main(){ vW = position; vN = normal; vC = aCol; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
+    fragmentShader: `
+      precision highp float;
+      varying vec3 vW, vN, vC;
+      uniform vec3 uLightDir, uSunCol, uAmb, uFog;
+      uniform float uTime, uShadow, uFogNear, uFogFar;
+      ${GLSL_NOISE}
+      void main(){
+        vec3 n = normalize(vN);
+        float wrap = clamp(dot(n, uLightDir) * .72 + .3, 0., 1.);
+        float dist = length(vW - cameraPosition);
+        vec3 c = vC;
+        // fine grass mottling up close
+        float detail = noise(vW.xz * 1.1) * .55 + noise(vW.xz * .3) * .45;
+        c *= 1. + (detail - .5) * .2 * smoothstep(190., 30., dist);
+        // wind gusts brushing across the grass
+        float gust = noise(vW.xz * vec2(.022, .05) + vec2(uTime * .22, uTime * .07));
+        c *= 1. + (gust - .5) * .11;
+        // slow cloud shadows
+        float sh = fbm(vW.xz * .0042 + vec2(uTime * .0055, uTime * .0018));
+        float shade = 1. - uShadow * .34 * smoothstep(.46, .66, sh);
+        vec3 lit = c * (uAmb + uSunCol * wrap * shade);
+        gl_FragColor = vec4(mix(lit, uFog, smoothstep(uFogNear, uFogFar, dist)), 1.);
+      }`,
+  }));
+  land.frustumCulled = false;
+  scene.add(land);
+})();
+
+// --- turbines ---
+scene.fog = new THREE.Fog(0xbcdcf2, 120, 540);
+const sunLight = new THREE.DirectionalLight(0xffffff, 1);
+const hemi = new THREE.HemisphereLight(0xffffff, 0x556644, 1);
+scene.add(sunLight, sunLight.target, hemi);
+
+const turbineMat = new THREE.MeshLambertMaterial({ color: 0xf1f3f2 });
+const beaconTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grd.addColorStop(0, 'rgba(255,255,255,1)'); grd.addColorStop(0.18, 'rgba(255,90,70,0.95)');
+  grd.addColorStop(0.5, 'rgba(255,40,30,0.25)'); grd.addColorStop(1, 'rgba(255,0,0,0)');
+  g.fillStyle = grd; g.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
+})();
+const beaconMat = new THREE.SpriteMaterial({ map: beaconTex, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, transparent: true, opacity: 0 });
+
+const bladeGeo = (() => {
+  const L = 12.5, s = new THREE.Shape();
+  s.moveTo(-0.18, 0); s.lineTo(-0.2, 0.9);
+  s.quadraticCurveTo(-0.62, 2.2, -0.5, 3.6);
+  s.lineTo(-0.06, L); s.lineTo(0.05, L);
+  s.lineTo(0.2, 2.4); s.lineTo(0.18, 0); s.closePath();
+  const g = new THREE.ExtrudeGeometry(s, { depth: 0.12, bevelEnabled: false });
+  g.translate(0, 0, -0.06);
+  return g;
+})();
+const towerGeo = new THREE.CylinderGeometry(0.24, 0.52, 22, 14);
+towerGeo.translate(0, 11, 0);
+const nacelleGeo = new THREE.CylinderGeometry(0.5, 0.42, 2.6, 12);
+nacelleGeo.rotateX(Math.PI / 2);
+const hubGeo = new THREE.SphereGeometry(0.52, 14, 10);
+hubGeo.scale(1, 1, 1.5);
+
+const rotors = [];
+function addTurbine(x, z, scale, yaw, phase, speed) {
+  const g = new THREE.Group();
+  g.position.set(x, heightAt(x, z) - 0.4, z);
+  g.scale.setScalar(scale);
+  g.add(new THREE.Mesh(towerGeo, turbineMat));
+  const head = new THREE.Group();
+  head.position.y = 22; head.rotation.y = yaw;
+  const nac = new THREE.Mesh(nacelleGeo, turbineMat); nac.position.z = -0.3; head.add(nac);
+  const rotor = new THREE.Group(); rotor.position.z = 1.25;
+  rotor.add(new THREE.Mesh(hubGeo, turbineMat));
+  for (let i = 0; i < 3; i++) {
+    const arm = new THREE.Group(); arm.rotation.z = i * 2 * Math.PI / 3;
+    const blade = new THREE.Mesh(bladeGeo, turbineMat); blade.rotation.y = 0.22; arm.add(blade);
+    rotor.add(arm);
+  }
+  rotor.rotation.z = phase; head.add(rotor);
+  const beacon = new THREE.Sprite(beaconMat); beacon.position.set(0, 0.9, -0.6); beacon.scale.setScalar(2.6 / scale * 0.8); head.add(beacon);
+  g.add(head);
+  scene.add(g);
+  rotors.push({ rotor, speed });
+}
+// The group from the photo sits in the middle; the rest carry the ridge out for wide screens.
+addTurbine(-17, -4, 0.84, 0.42, 0.5, 1.00);
+addTurbine(-3, -22, 0.70, 0.38, 2.1, 0.93);
+addTurbine(13, -3, 0.82, 0.45, 4.0, 1.05);
+addTurbine(24, -44, 0.72, 0.40, 1.2, 0.97);   // tucked behind the crest; only the blades clear it
+addTurbine(41, -16, 0.74, 0.36, 3.3, 0.9);
+addTurbine(-52, -24, 0.66, 0.44, 5.2, 0.95);
+addTurbine(-92, -8, 0.8, 0.4, 0.9, 1.02);
+addTurbine(-128, -30, 0.68, 0.37, 2.8, 0.92);
+addTurbine(84, -10, 0.8, 0.43, 4.6, 0.98);
+addTurbine(118, -34, 0.7, 0.4, 1.7, 1.04);
+addTurbine(160, -6, 0.78, 0.38, 3.9, 0.94);
+(function metMast() {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.09, 24, 6), new THREE.MeshLambertMaterial({ color: 0x8b9396 }));
+  m.position.set(62, heightAt(62, -12) + 11.5, -12); scene.add(m);
+})();
+
+// --- time-of-day palette, keyed on the sun's elevation in degrees ---
+const C = h => new THREE.Color(h);
+const KEYS = [
+  //  el   zenith        horizon       light         int   ambient       cloud lit     cloud shade   stars
+  [-18, C('#04070f'), C('#0e1830'), C('#8fa6dd'), 0.34, C('#141d33'), C('#232d4c'), C('#0a0f1e'), 1.0],
+  [ -9, C('#0a1230'), C('#27305c'), C('#8fa6dd'), 0.30, C('#1c2540'), C('#3a416c'), C('#121830'), 0.8],
+  [ -4, C('#1b2f63'), C('#c9765f'), C('#ff9a6a'), 0.28, C('#4a4460'), C('#e89a80'), C('#3a3558'), 0.25],
+  [  0, C('#3463aa'), C('#f4ab72'), C('#ffa25e'), 0.62, C('#6b6272'), C('#ffc9a0'), C('#77658a'), 0.0],
+  [  7, C('#3d7dc9'), C('#f2d6ae'), C('#ffd9a8'), 0.68, C('#7f8790'), C('#fff0dc'), C('#9aa3bd'), 0.0],
+  [ 22, C('#2c78cf'), C('#bcdcf2'), C('#fff3dc'), 0.66, C('#8795a0'), C('#ffffff'), C('#a9bcd6'), 0.0],
+];
+const pal = { zen: C(0), hor: C(0), sun: C(0), int: 1, amb: C(0), lit: C(0), shade: C(0), stars: 0 };
+function samplePalette(el) {
+  let i = 0;
+  while (i < KEYS.length - 2 && el > KEYS[i + 1][0]) i++;
+  const a = KEYS[i], b = KEYS[i + 1];
+  let t = Math.min(1, Math.max(0, (el - a[0]) / (b[0] - a[0])));
+  t = t * t * (3 - 2 * t);
+  pal.zen.copy(a[1]).lerp(b[1], t); pal.hor.copy(a[2]).lerp(b[2], t); pal.sun.copy(a[3]).lerp(b[3], t);
+  pal.int = a[4] + (b[4] - a[4]) * t;
+  pal.amb.copy(a[5]).lerp(b[5], t); pal.lit.copy(a[6]).lerp(b[6], t); pal.shade.copy(a[7]).lerp(b[7], t);
+  pal.stars = a[8] + (b[8] - a[8]) * t;
+}
+const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+// --- sky clock: follows the real time, or eases to a preview hour ---
+const realHour = () => { const n = new Date(); return n.getHours() + n.getMinutes() / 60 + n.getSeconds() / 3600; };
+let skyMode = 'live';
+let skyHour = realHour();
+const times = sunTimes(new Date());
+const PRESET = { dawn: times.rise + 0.3, day: 12.4, dusk: times.set - 0.12, night: 22.5 };
+// ?cover=dusk (or dawn/day/night) shows only the background, for cover images
+const COVER = new URLSearchParams(location.search).get('cover');
+if (COVER && PRESET[COVER] !== undefined) { skyMode = COVER; skyHour = PRESET[COVER]; document.documentElement.classList.add('cover'); }
+
+document.querySelectorAll('.sky-switch button').forEach(b => b.addEventListener('click', () => {
+  skyMode = b.dataset.sky;
+  document.querySelectorAll('.sky-switch button').forEach(o => o.setAttribute('aria-pressed', o === b));
+}));
+
+let arcK = 0.4, pitch = 11 * DEG;
+const pointer = { x: 0, y: 0, cx: 0, cy: 0 };
+addEventListener('pointermove', e => { pointer.x = e.clientX / innerWidth * 2 - 1; pointer.y = e.clientY / innerHeight * 2 - 1; });
+
+function resize() {
+  if (!renderer) return;
+  const w = innerWidth, h = innerHeight, aspect = w / h;
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.75));
+  renderer.setSize(w, h, false);
+  // tall screens get a wider lens and a flatter gaze so the ridge sits between the clock and the card
+  const t = sstep(0.75, 1.35, aspect);
+  camera.fov = 56 + (40 - 56) * t;
+  pitch = (7.5 + (9.0 - 7.5) * t) * DEG;
+  camera.aspect = aspect;
+  camera.updateProjectionMatrix();
+  const halfH = Math.atan(Math.tan(camera.fov * DEG / 2) * aspect) / DEG;
+  arcK = Math.min(0.44, halfH * 0.78 / 78);
+}
+addEventListener('resize', resize);
+
+const tmpV = new THREE.Vector3(), sunDir = new THREE.Vector3(), moonDir = new THREE.Vector3();
+let lastT = performance.now(), simT = 40, lastSkyTag = '';
+
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+  const motion = REDUCED ? 0.15 : 1;
+  const windK = Math.min(1.7, Math.max(0.55, 0.55 + wx.wind / 14));
+  simT += dt * motion * (0.7 + windK * 0.3);
+
+  // ease the sky toward its target hour along the shorter way round the clock
+  const target = skyMode === 'live' ? realHour() : PRESET[skyMode];
+  let diff = ((target - skyHour + 36) % 24) - 12;
+  skyHour = (skyHour + diff * (1 - Math.exp(-dt * 1.5)) + 24) % 24;
+
+  const s = solar(skyHour, new Date());
+  samplePalette(s.el);
+
+  // sun rises on the left, arcs overhead, sets on the right
+  const az = Math.max(-115, Math.min(115, s.H)) * arcK * DEG, el = s.el * DEG;
+  sunDir.set(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el));
+  const mH = ((s.H + 360) % 360) - 180;
+  const mAz = (mH * arcK * 0.8 + 21) * DEG, mEl = 19 * Math.cos(mH * 0.75 * DEG) * DEG;
+  moonDir.set(Math.sin(mAz) * Math.cos(mEl), Math.sin(mEl), -Math.cos(mAz) * Math.cos(mEl));
+  const dayAmt = sstep(-8, -2, s.el);
+
+  skyU.uZenith.value.copy(pal.zen); skyU.uHorizon.value.copy(pal.hor);
+  skyU.uSunDir.value.copy(sunDir); skyU.uMoonDir.value.copy(moonDir);
+  skyU.uSunCol.value.copy(pal.sun);
+  skyU.uCloudLit.value.copy(pal.lit); skyU.uCloudShade.value.copy(pal.shade);
+  skyU.uStars.value = pal.stars; skyU.uTime.value = simT;
+  skyU.uSunVis.value = sstep(-6, -0.5, s.el);
+  skyU.uMoonVis.value = (1 - dayAmt) * sstep(0, 4, mEl / DEG);
+  skyU.uCover.value += (wx.cover - skyU.uCover.value) * 0.02;
+
+  // light the land from the camera's side of the sun so the hills stay green, not silhouetted
+  tmpV.copy(moonDir).lerp(sunDir, dayAmt);
+  tmpV.set(tmpV.x * 0.95, Math.max(tmpV.y, 0.1) + 0.18, 0.62).normalize();
+  landU.uLightDir.value.copy(tmpV);
+  landU.uSunCol.value.copy(pal.sun).multiplyScalar(pal.int);
+  landU.uAmb.value.copy(pal.amb);
+  landU.uFog.value.copy(pal.hor);
+  landU.uTime.value = simT;
+  landU.uShadow.value = 0.35 + dayAmt * 0.65;
+
+  scene.fog.color.copy(pal.hor);
+  sunLight.position.copy(tmpV).multiplyScalar(100);
+  sunLight.color.copy(pal.sun); sunLight.intensity = pal.int * 0.95;
+  hemi.color.copy(pal.amb).multiplyScalar(1.2); hemi.groundColor.copy(pal.amb).multiplyScalar(0.75); hemi.intensity = 1;
+
+  // rotors turn with Merced's wind; beacons breathe in unison after dark
+  const spin = 0.85 * windK * motion * dt;
+  for (const r of rotors) r.rotor.rotation.z -= spin * r.speed;
+  const pulse = Math.pow(Math.max(0, Math.sin(now / 1000 * 1.6)), 3);
+  beaconMat.opacity = (1 - sstep(-7, -1, s.el)) * (0.15 + 0.85 * pulse);
+
+  // camera: barely-there parallax
+  pointer.cx += (pointer.x - pointer.cx) * 0.04; pointer.cy += (pointer.y - pointer.cy) * 0.04;
+  const sway = REDUCED ? 0 : Math.sin(now / 9000) * 0.5;
+  camera.position.set(pointer.cx * 1.6 + sway, CAM_Y - pointer.cy * 0.5, CAM_Z);
+  camera.lookAt(pointer.cx * 0.4, CAM_Y + Math.tan(pitch) * CAM_Z, 0);
+  sky.position.copy(camera.position);
+
+  // let the glass and the weather icon follow the sky
+  const tag = s.el < -7 ? 'night' : s.el < 3 ? 'twilight' : 'day';
+  if (tag !== lastSkyTag) {
+    lastSkyTag = tag;
+    document.documentElement.dataset.sky = tag;
+    isNight = s.el < -3; paintWeatherIcon();
+  }
+  renderer.render(scene, camera);
+}
+
+/* =====================================================================
+   4. GO
+   ===================================================================== */
+renderMilestones();
+tick();
+setInterval(tick, 1000);
+paintWeatherIcon();
+loadWeather();
+setInterval(loadWeather, 15 * 60 * 1000);
+if (renderer) { resize(); requestAnimationFrame(frame); }
+else { canvas.style.background = 'linear-gradient(#2c78cf, #bcdcf2 62%, #4d8a34 62%, #2f6a22)'; }
+</script>
+</body>
+</html>
