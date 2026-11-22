@@ -3,6 +3,8 @@
 //   banners  <canvas class="page-banner-canvas" data-seed="N"> on inner pages
 //   media    project images / video / blog figures render dithered and
 //            dissolve to the original while in the middle of the screen
+//   post     <img class="post-banner-img"> at the top of blog posts, dithered
+//            in its own colours, dissolving to the original on hover
 //   veil     Bayer dissolve when entering and leaving a page
 //
 // Palettes come from css/style.css: --dither-0..5 (greyscale, media) and
@@ -14,6 +16,9 @@
 // Config
 
 const MEDIA = '.project-card-img, .project-poster-thumb, .post-img';
+const POST_BANNER = '.post-banner-img';
+const COLOR_LEVELS = 4;  // per-channel steps for colour-dithered post banners
+const COLOR_BLACK  = 16; // channel values at or below this stay pure black
 
 const CELL       = 2;    // css px per dither cell (media, banners)
 const VEIL_CELL  = 4;    // chunkier cells for page transitions
@@ -238,9 +243,37 @@ function ditherPixels(src, out, w, h) {
   }
 }
 
+// Per-channel ordered dither: keeps the image's own colours
+function ditherColor(src, out, w, h) {
+  const n = COLOR_LEVELS - 1;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4, th = bayerAt(x, y);
+      for (let c = 0; c < 3; c++) {
+        const v = (Math.max(0, src[i + c] - COLOR_BLACK) / (255 - COLOR_BLACK)) * n;
+        const k = Math.floor(v);
+        out[i + c] = Math.round(((v - k > th ? k + 1 : k) / n) * 255);
+      }
+      out[i + 3] = src[i + 3] < 128 ? 0 : 255;
+    }
+  }
+}
+
+// object-position as [0..1, 0..1]; non-percentage values fall back to centre
+function objectPosition(el) {
+  const parts = getComputedStyle(el).objectPosition.split(' ');
+  const frac = v => (v && v.endsWith('%') ? parseFloat(v) / 100 : 0.5);
+  return [frac(parts[0]), frac(parts[1])];
+}
+
 class DitherMedia {
-  constructor(el) {
+  // opts.dither: pixel function (greyscale by default)
+  // opts.cover:  mirror object-fit: cover when sampling
+  // opts.reveal: 'focus' (middle of the screen) or 'hover'
+  constructor(el, opts = {}) {
     this.el = el;
+    this.ditherFn = opts.dither || ditherPixels;
+    this.cover = !!opts.cover;
     this.isVideo = el.tagName === 'VIDEO';
     this.t = 0;          // 0 = fully dithered, 1 = original showing
     this.target = 0;
@@ -261,8 +294,13 @@ class DitherMedia {
     // clear while any part of it crosses the focus band, re-dither when it leaves.
     // Entries can batch up during layout shifts, so always read the newest one.
     const latest = entries => entries[entries.length - 1].isIntersecting;
-    new IntersectionObserver(entries => this.animateTo(latest(entries) ? 1 : 0),
-      { rootMargin: FOCUS_BAND }).observe(this.wrap);
+    if (opts.reveal === 'hover') {
+      this.wrap.addEventListener('pointerenter', () => this.animateTo(1));
+      this.wrap.addEventListener('pointerleave', () => this.animateTo(0));
+    } else {
+      new IntersectionObserver(entries => this.animateTo(latest(entries) ? 1 : 0),
+        { rootMargin: FOCUS_BAND }).observe(this.wrap);
+    }
     new IntersectionObserver(entries => { this.visible = latest(entries); }).observe(this.wrap);
 
     const ready = () => { this.layout(); new ResizeObserver(() => this.layout()).observe(el); };
@@ -295,15 +333,25 @@ class DitherMedia {
   sample() {
     if (!this.w) return;
     try {
-      this.wctx.drawImage(this.el, 0, 0, this.w, this.h);
+      this.drawSource();
       const src = this.wctx.getImageData(0, 0, this.w, this.h).data;
-      ditherPixels(src, this.dithered, this.w, this.h);
+      this.ditherFn(src, this.dithered, this.w, this.h);
     } catch (err) {
       // tainted canvas (e.g. opened over file://); just show the original
       this.destroy();
       return;
     }
     this.paint();
+  }
+
+  drawSource() {
+    const el = this.el, w = this.w, h = this.h;
+    if (!this.cover) { this.wctx.drawImage(el, 0, 0, w, h); return; }
+    const iw = el.naturalWidth, ih = el.naturalHeight;
+    const scale = Math.max(w / iw, h / ih);
+    const sw = w / scale, sh = h / scale;
+    const [px, py] = objectPosition(el);
+    this.wctx.drawImage(el, (iw - sw) * px, (ih - sh) * py, sw, sh, 0, 0, w, h);
   }
 
   paint() {
@@ -342,6 +390,11 @@ class DitherMedia {
 function initMedia() {
   document.querySelectorAll(MEDIA).forEach(el => {
     if (el.dataset.dither !== 'off') new DitherMedia(el);
+  });
+  document.querySelectorAll(POST_BANNER).forEach(el => {
+    if (el.dataset.dither !== 'off') {
+      new DitherMedia(el, { dither: ditherColor, cover: true, reveal: 'hover' });
+    }
   });
 }
 

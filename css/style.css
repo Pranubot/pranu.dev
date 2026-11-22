@@ -110,6 +110,7 @@ img {
 .site-nav::after,
 .banner-wrap::after,
 .page-banner-wrap::after,
+.post-banner::after,
 .site-footer::before {
   content: '';
   position: absolute;
@@ -131,6 +132,7 @@ img {
 /* Same fade, flipped: nothing at the top, solid at the bottom */
 .banner-wrap::after,
 .page-banner-wrap::after,
+.post-banner::after,
 .site-footer::before {
   -webkit-mask-position: 0 24px, 0 16px, 0 8px, 0 0;
           mask-position: 0 24px, 0 16px, 0 8px, 0 0;
@@ -1093,6 +1095,36 @@ main {
 }
 
 /* BLOG POST */
+
+/* Post banner: the post's image, colour-dithered by js/dither.js,
+   fading into the page like .page-banner-wrap. Set the crop per post
+   with an inline object-position on the <img>. */
+.post-banner {
+  width: 100%;
+  max-width: var(--max-width);
+  height: 240px;
+  margin: 0 auto;
+  background: var(--bg);
+  overflow: hidden;
+  position: relative;
+  line-height: 0;
+}
+
+.post-banner::after {
+  bottom: 0;
+}
+
+.post-banner .dither-media {
+  height: 100%;
+}
+
+.post-banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
 .post-article-header {
   padding: 2rem 0 1.5rem;
   margin-bottom: 2rem;
@@ -1183,6 +1215,10 @@ main {
   margin-bottom: 1.0rem;
 }
 
+.post-banner + .wrapper .post-back {
+  margin-top: 0.75rem;
+}
+
 .post-back:hover {
   color: var(--accent);
   text-decoration: none;
@@ -1257,6 +1293,7 @@ hr.dashed {
   .post-date   { min-width: unset; }
   .contact-item { flex-direction: column; gap: 0.3rem; align-items: flex-start; }
   .post-figure-row { flex-direction: column; }
+  .post-banner { height: 160px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
