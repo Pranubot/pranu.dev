@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>projects — Pranav Yadav</title>
+  <title>projects | Pranav Yadav</title>
   <meta name="description" content="pranav yadav's projects">
   <base href="../">
   <link rel="icon" type="image/jpeg" href="images/logo-no-text.jpg">
@@ -113,6 +113,45 @@
       <div class="project-section">
         <p class="project-section-label">projects</p>
         <div class="project-list">
+
+          <article class="project-card">
+            <div class="project-card-header">
+              <h2 class="project-card-title">LunaSol - NASA SpaceApps Winner</h2>
+              <span class="project-card-year">Nov 2026</span>
+            </div>
+            <div class="project-card-body">
+              <div class="project-card-content">
+                <p class="project-card-desc">
+                  Built a lunar landing-site planner that computes sunlight, Earth comms windows and survival nights from NASA JPL Horizons and LRO LOLA data, providing vital insights on optimal landing locations. Won best overall, best use of data, and best working build at Merced local event.
+                </p>
+                <ul class="exp-bullets">
+                  <li> Developed a Python data pipeline that queries the JPL Horizons API for 4+ years of hourly Sun and Earth geometry and ray-casts terrain horizons across 1,440 directions out to 400 km per site.</li>
+                  <li> Implemented real-time terrain shadows with GPU ray-marching in WebGL shaders, animating sunlight across the lunar south pole and a 3D landscape as mission time plays.</li>
+                  <li>Designed a video-editor-style interface (drag-and-drop timeline & collapsible panels) so engineers and scientists can compare sites from the same view.</li>
+                </ul>
+                <div class="project-tags">
+                  <span class="tag">Python</span>
+                  <span class="tag">Three.js/WebGL</span>
+                  <span class="tag">React</span>
+                  <span class="tag">Vite</span>
+                  <span class="tag">TypeScript</span>
+                </div>
+                <div class="project-links">
+                  <a href="https://lunasol.earth" target="_blank">[demo]</a>
+                </div>
+              </div>
+              <div class="project-card-media">
+                <video
+                  src="images/Projects/lunasol-demo.webm"
+                  class="project-card-img"
+                  autoplay
+                  muted
+                  loop
+                  playsinline
+                ></video>
+              </div>
+            </div>
+          </article>
           
           <article class="project-card">
             <div class="project-card-header">
